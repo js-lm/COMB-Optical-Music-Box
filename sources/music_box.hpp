@@ -5,7 +5,6 @@
 #include "color_sensors/sensors_manager.hpp"
 #include "midi_unit/midi_manager.hpp"
 #include "music_decoder/music_decoder.hpp"
-#include "calibrator/calibrator.hpp"
 
 #include "utilities/enum_map.hpp"
 #include "utilities/ring_buffer.hpp"
@@ -35,7 +34,7 @@ private:
     SensorsManager      sensorsManager_{};
     MidiManager         midiManager_{};
     MusicDecoder        musicDecoder_{};
-    Calibrator          calibrator_{};
+    // Calibrator          calibrator_{};
 
     // inline static std::atomic<MotorManager*> motorManagerPointer_{nullptr};
 

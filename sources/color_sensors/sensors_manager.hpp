@@ -1,7 +1,6 @@
 #pragma once
 
 #include "aliases.hpp"
-#include "calibrator/reference_profile.hpp"
 #include "constants.hpp"
 
 #include "utilities/ring_buffer.hpp"
@@ -80,7 +79,7 @@ private:
     units::TimestampUs samplingStartTimestamp_{0};
     bool isSamplingActive_{false};
     
-    std::optional<calibrator::ReferenceProfile> referenceProfile_{};
+    // std::optional<calibrator::ReferenceProfile> referenceProfile_{};
 
     utilities::RingBuffer<ColorDataRow, constants::color_sensor::FrontToBackDistance + 1> colorDataRowQueue_{};
 
@@ -99,7 +98,7 @@ public:
     DEBUG_RawColorReadingRow DEBUG_collectSensorRawReadings();
     DEBUG_CompleteColorDataRow DEBUG_getCompleteColorDataRow();
 
-    void setReferenceProfile(const calibrator::ReferenceProfile &referenceProfile);
+    // void setReferenceProfile(const calibrator::ReferenceProfile &referenceProfile);
 
 private:
     void initializeSensors();

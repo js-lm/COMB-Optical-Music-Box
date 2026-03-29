@@ -60,7 +60,7 @@ void MusicBox::initialize(){
         midiManager_.setInstrument(2, instruments::Default::Trumpet);
         midiManager_.setInstrument(3, instruments::Mt32::Xylophone);
 
-        sensorsManager_.setReferenceProfile(calibrator_.getReferenceProfile());
+        // sensorsManager_.setReferenceProfile(calibrator_.getReferenceProfile());
     } /* DEBUG */
 }
 

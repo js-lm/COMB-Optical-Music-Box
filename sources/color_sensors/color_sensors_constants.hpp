@@ -34,6 +34,8 @@ namespace constants::color_sensor{
         (static_cast<uint32_t>(0x100U) - static_cast<uint32_t>(IntegrationTimeValue)) * 2400U
     };
 
+    // constexpr units::Us MuxChannelSamplingSettleDelay{50ULL};
+
     // mux
     constexpr uint8_t MuxDisableMask{0x00};
 
@@ -42,6 +44,13 @@ namespace constants::color_sensor{
     constexpr float WhiteSaturationThreshold    {.25f};
     constexpr float YellowRedRatioThreshold     {1.5f};
     constexpr float YellowGreenRatioThreshold   {1.5f};
+
+    // normalized distance metric
+    constexpr uint32_t NormalizedScaleFactor{10000U};
+    constexpr uint32_t MinimumSafeDivisor{1U};
+    constexpr uint32_t BrightnessDistanceWeight{2U};
+    constexpr uint16_t MaximumColorCost{65535U};
+    constexpr uint16_t MinimumColorCost{0U};
 
     // others
     constexpr int FrontToBackDistance{5};

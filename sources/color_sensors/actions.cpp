@@ -2,7 +2,6 @@
 
 #include "constants.hpp"
 #include "debug_utilities.hpp"
-#include "error_bias.hpp"
 
 #include <hardware/i2c.h>
 #include <pico/stdlib.h>

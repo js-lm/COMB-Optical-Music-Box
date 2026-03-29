@@ -6,7 +6,8 @@
 #include <algorithm>
 
 #include "constants.hpp"
-#include "error_bias.hpp"
+
+#include "normalized_reference_profile.hpp"
 
 void SensorsManager::selectMuxChannel(i2c_inst_t *i2c, physical::I2CAddress muxAddress, physical::Channel channel){
     constexpr uint8_t disableMask{constants::color_sensor::MuxDisableMask};
@@ -38,9 +39,9 @@ void SensorsManager::writeColorSensorRegister(physical::Register registerAddress
     i2c_write_blocking(i2c0, constants::i2c_address::ColorSensor, data, 2, false);
 }
 
-void SensorsManager::setReferenceProfile(const calibrator::ReferenceProfile &referenceProfile){
-    referenceProfile_ = referenceProfile;
-}
+// void SensorsManager::setReferenceProfile(const calibrator::ReferenceProfile &referenceProfile){
+//     referenceProfile_ = referenceProfile;
+// }
 
 SensorsManager::ColorData SensorsManager::getColorData(
     color_sensor_data::SensorIndex sensorIndex,
@@ -48,68 +49,106 @@ SensorsManager::ColorData SensorsManager::getColorData(
 ) const{
     ColorData colorData{};
 
-    if(!referenceProfile_
-    || sensorIndex >= constants::color_sensor::TotalSensorCount
-    ){
+    if(sensorIndex >= constants::color_sensor::TotalSensorCount){
         colorData.mostLikelyColor = Color::Error;
         return colorData;
     }
 
-    const calibrator::BaseValues &baseValues{referenceProfile_.value()[sensorIndex]};
+    const constants::color_sensor::NormalizedBaseValues &normalizedBaseValues{
+        constants::color_sensor::PrecomputedNormalizedProfile[sensorIndex]
+    };
 
-    auto absoluteDifference{[](uint16_t leftValue, uint16_t rightValue)->uint16_t{
+    if(static_cast<uint32_t>(color.clear) >= normalizedBaseValues.noPaperClearThreshold){
+        colorData.costs[Color::White] = constants::color_sensor::MaximumColorCost;
+        colorData.costs[Color::Red]   = constants::color_sensor::MaximumColorCost;
+        colorData.costs[Color::Green] = constants::color_sensor::MaximumColorCost;
+        colorData.costs[Color::Blue]  = constants::color_sensor::MaximumColorCost;
+        colorData.costs[Color::Black] = constants::color_sensor::MaximumColorCost;
+        colorData.costs[Color::None]  = constants::color_sensor::MinimumColorCost;
+        colorData.costs[Color::Error] = constants::color_sensor::MinimumColorCost;
+
+        colorData.mostLikelyColor = Color::None;
+        return colorData;
+    }
+
+    const uint32_t incomingClearRaw{
+        std::max(
+            static_cast<uint32_t>(color.clear),
+            constants::color_sensor::MinimumSafeDivisor
+        )
+    };
+
+    const constants::color_sensor::NormalizedColor normalizedIncomingColor{
+        (static_cast<uint32_t>(color.red)   * constants::color_sensor::NormalizedScaleFactor) / incomingClearRaw,
+        (static_cast<uint32_t>(color.green) * constants::color_sensor::NormalizedScaleFactor) / incomingClearRaw,
+        (static_cast<uint32_t>(color.blue)  * constants::color_sensor::NormalizedScaleFactor) / incomingClearRaw,
+        (static_cast<uint32_t>(color.clear) * constants::color_sensor::NormalizedScaleFactor) / normalizedBaseValues.noPaperClearRaw
+    };
+
+    auto absoluteDifference{[](uint32_t leftValue, uint32_t rightValue)->uint32_t{
         return leftValue >= rightValue ? leftValue - rightValue : rightValue - leftValue;
     }};
 
-    auto distance{[&absoluteDifference](
-        const color_sensor_data::RawColorReading &leftValue, 
-        const color_sensor_data::RawColorReading &rightValue
-    )->uint16_t{
-        return absoluteDifference(leftValue.red, rightValue.red)
-             + absoluteDifference(leftValue.green, rightValue.green)
-             + absoluteDifference(leftValue.blue, rightValue.blue)
-             + absoluteDifference(leftValue.clear, rightValue.clear);
+    auto hybridDistance{[&absoluteDifference](
+        const constants::color_sensor::NormalizedColor &normalizedMeasuredColor,
+        const constants::color_sensor::NormalizedColor &normalizedTargetColor
+    )->uint32_t{
+        const uint32_t redDifference{
+            absoluteDifference(normalizedMeasuredColor.red, normalizedTargetColor.red)
+        };
+        const uint32_t greenDifference{
+            absoluteDifference(normalizedMeasuredColor.green, normalizedTargetColor.green)
+        };
+        const uint32_t blueDifference{
+            absoluteDifference(normalizedMeasuredColor.blue, normalizedTargetColor.blue)
+        };
+        const uint32_t brightnessDifference{
+            absoluteDifference(normalizedMeasuredColor.clear, normalizedTargetColor.clear)
+        };
+
+        const uint32_t weightedBrightnessDifference{
+            brightnessDifference * constants::color_sensor::BrightnessDistanceWeight
+        };
+
+        const uint32_t totalDistance{
+            redDifference + greenDifference + blueDifference + weightedBrightnessDifference
+        };
+
+        const uint32_t cappedDistance{
+            std::min(
+                totalDistance,
+                static_cast<uint32_t>(constants::color_sensor::MaximumColorCost)
+            )
+        };
+
+        return cappedDistance;
     }};
 
-    const auto whiteDistance{distance(color, baseValues.white)};
-    const auto redDistance  {distance(color, baseValues.red)};
-    const auto greenDistance{distance(color, baseValues.green)};
-    const auto blueDistance {distance(color, baseValues.blue)};
-    const auto blackDistance{distance(color, baseValues.black)};
+    colorData.costs[Color::White] = hybridDistance(normalizedIncomingColor, normalizedBaseValues.white);
+    colorData.costs[Color::Red]   = hybridDistance(normalizedIncomingColor, normalizedBaseValues.red);
+    colorData.costs[Color::Green] = hybridDistance(normalizedIncomingColor, normalizedBaseValues.green);
+    colorData.costs[Color::Blue]  = hybridDistance(normalizedIncomingColor, normalizedBaseValues.blue);
+    colorData.costs[Color::Black] = hybridDistance(normalizedIncomingColor, normalizedBaseValues.black);
+    colorData.costs[Color::None]  = constants::color_sensor::MaximumColorCost;
+    colorData.costs[Color::Error] = constants::color_sensor::MinimumColorCost;
 
-    colorData.costs[Color::White] = whiteDistance;
-    colorData.costs[Color::Red]   = redDistance;
-    colorData.costs[Color::Green] = greenDistance;
-    colorData.costs[Color::Blue]  = blueDistance;
-    colorData.costs[Color::Black] = blackDistance;
-    colorData.costs[Color::None]  = 0;
-    colorData.costs[Color::Error] = 0;
+    Color closestColor{Color::Error};
+    auto minimumDistance{constants::color_sensor::MaximumColorCost};
 
-    auto minimumDistance{distance(color, baseValues.noPaper)};
-    Color closestColor{Color::None};
+    constexpr std::array<Color, constants::decoder::Radix> evaluatedColors{
+        Color::White,
+        Color::Red,
+        Color::Green,
+        Color::Blue,
+        Color::Black
+    };
 
-    if(whiteDistance < minimumDistance){
-        minimumDistance = whiteDistance;
-        closestColor = Color::White;
-    }
-
-    if(redDistance < minimumDistance){
-        minimumDistance = redDistance;
-        closestColor = Color::Red;
-    }
-
-    if(greenDistance < minimumDistance){
-        minimumDistance = greenDistance;
-        closestColor = Color::Green;
-    }
-
-    if(blueDistance < minimumDistance){
-        minimumDistance = blueDistance;
-        closestColor = Color::Blue;
-    }
-
-    if(blackDistance < minimumDistance){
-        closestColor = Color::Black;
+    for(const Color evaluatedColor : evaluatedColors){
+        const auto currentDistance{colorData.costs[evaluatedColor]};
+        if(currentDistance < minimumDistance){
+            minimumDistance = currentDistance;
+            closestColor = evaluatedColor;
+        }
     }
 
     colorData.mostLikelyColor = closestColor;
@@ -139,7 +178,7 @@ SensorsManager::ColorRow SensorsManager::trySoftCorrection(const ColorDataRow &c
     uint8_t requiredAddition{static_cast<uint8_t>((constants::decoder::Radix - checksumResidue) % constants::decoder::Radix)};
 
     uint8_t bestSensorIndex{0};
-    float lowestAdjustedPenalty{std::numeric_limits<float>::max()};
+    uint16_t lowestPenaltyDelta{std::numeric_limits<uint16_t>::max()};
     Color bestAlternativeColor{Color::Error};
 
     for(uint8_t sensorIndex{0}; sensorIndex < constants::color_sensor::TotalSensorCount; sensorIndex++){
@@ -153,17 +192,11 @@ SensorsManager::ColorRow SensorsManager::trySoftCorrection(const ColorDataRow &c
 
         uint16_t currentCost{colorDataRow.costRow[sensorIndex][currentColor]};
         uint16_t alternativeCost{colorDataRow.costRow[sensorIndex][alternativeColor]};
-        
-        float basePenalty{
-            alternativeCost > currentCost ? static_cast<float>(alternativeCost - currentCost) : .0f
-        };
 
-        float adjustedPenalty{
-            basePenalty * constants::color_sensor::error_bias::getPenaltyMultiplier(sensorIndex, currentColor, alternativeColor)
-        };
+        auto penaltyDelta{alternativeCost > currentCost ? alternativeCost - currentCost : 0};
 
-        if(adjustedPenalty < lowestAdjustedPenalty){
-            lowestAdjustedPenalty = adjustedPenalty;
+        if(penaltyDelta < lowestPenaltyDelta){
+            lowestPenaltyDelta = penaltyDelta;
             bestSensorIndex = sensorIndex;
             bestAlternativeColor = alternativeColor;
         }

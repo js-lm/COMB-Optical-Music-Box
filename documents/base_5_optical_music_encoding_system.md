@@ -12,7 +12,7 @@
 
 ## Paper Strip Layout
 
-### Index 0 - 8: Instrument Instructions
+### Index 0 - 11: Instrument Instructions
 
 | Index | Field |
 | --- | --- |
@@ -22,15 +22,15 @@
 | 4 - 5 | **Instrument 2** Immediate |
 | 6 | **Instrument 3** Opcode |
 | 7 - 8 | **Instrument 3** Immediate |
+| 9 | **Instrument 4** Opcode |
+| 10 - 11 | **Instrument 4** Immediate |
 
-### Index 9 - 14: Chord
+### Index 12 - 14: System
 
 | Index | Field |
 | --- | --- |
-| 9 - 10 | Extensions |
-| 11 | Triad Quality |
-| 12 - 13 | Root Note |
-| 14 | Octave |
+| 12 | **System** Opcode |
+| 13 - 14 | **System** Immediate |
 
 ### Index 15: Checksum
 
@@ -44,82 +44,52 @@
 
 Format (Base 5): `[Opcode: 1 digit] [Immediate: 2 digits]`
 
+Special: `0` `0` `0`: No-op
+
 | Name | Opcode | Description |
 | --- | --- | --- |
-| Play Note | 0 - 2 | `if(Immediate != 00) Play((Opcode * 25) + toDecimal(Immediate) + offset)` |
-| Shift Positive | 3 | `Instrument = min(Instrument + Immediate, 127)` |
-| Shift Negative | 4 | `Instrument = max(Instrument - Immediate, 0)` |
+| Play Note | 0 - 2 | `Play((Opcode * 25) + toDecimal(Immediate) + OFFSET)` |
+| Set Instrument | 3 - 4 | `Instrument = ((Opcode - 3) * 25) + toDecimal(Immediate)` |
 
 ---
 
-## Chord Instruction Set
+## System Instruction Set
 
-Format (Base 5): `[Extension: 2 digits] [Triad: 1 digit] [Root: 2 digits] [Octave: 1 digit]` 
+Format (Base 5): `[Opcode: 1 digit] [Immediate: 2 digits]`
 
-Behavior: Latched. State persists until new chord or mute (Octave == `4`) is received.
+Behavior: Latched. State persists until new command overwrites it.
 
-### Extensions
+| Name | Opcode | Description |
+| --- | --- | --- |
+| Set Tempo* | 0 - 1 | `Tempo = ((Opcode * 25) + toDecimal(Immediate) + 1) * 2` |
+| Set Volume** | 2 - 3 |`Target = Immediate Digit 1`, `Volume = (((Opcode - 2) * 5) + Immediate Digit 2 + 1) * 10` |
+| Set Articulation | 4 | `Target = Immediate Digit 1`, `State = Immediate Digit 2` |
 
-| Value | 7th Toggle | 9th Toggle | Power Toggle |
-| --- | --- | --- | --- |
-| `0` `0` |  |  |  |
-| `0` `1` |  |  | On |
-| `0` `2` |  | 9th |  |
-| `0` `3` |  | 9th | On |
-| `0` `4` |  | Flat |  |
-| `1` `0` |  | Flat | On |
-| `1` `1` | 7th |  |  |
-| `1` `2` | 7th |  | On |
-| `1` `3` | 7th | 9th |  |
-| `1` `4` | 7th | 9th | On |
-| `2` `0` | 7th | Flat |  |
-| `2` `1` | 7th | Flat | On |
-| `2` `2` | Major |  |  |
-| `2` `3` | Major |  | On |
-| `2` `4` | Major | 9th |  |
-| `3` `0` | Major | 9th | On |
-| `3` `1` | Major | Flat |  |
-| `3` `2` | Major | Flat | On |
+*\* Sets playback speed to (Tempo)% from 2% to 100% in 2% increments.*
 
-### Triad Quality
+*\*\* Sets target volume to (Volume)% from 10% to 100% in 10% increments.*
 
-| Value | Quality |
-| --- | --- |
-| `0` | Major |
-| `1` | Minor |
-| `2` | Diminished |
-| `3` | Augmented |
-| `4` | Suspended 4 |
+### Target
 
-### Root Note
+| State | Name |
+| :--- | :--- |
+| `0` | **All** |
+| `1` | **Instrument 1** |
+| `2` | **Instrument 2** |
+| `3` | **Instrument 3** |
+| `4` | **Instrument 4** |
 
-Special: `0` `0`: No-Op
+### Articulation States
 
-| Value | Note (Octave 0) | Value | Note (Octave +1) |
-| --- | --- | --- | --- |
-| `0` `1` | C | `2` `3` | C |
-| `0` `2` | C# | `2` `4` | C# |
-| `0` `3` | D | `3` `0` | D |
-| `0` `4` | D# | `3` `1` | D# |
-| `1` `0` | E | `3` `2` | E |
-| `1` `1` | F | `3` `3` | F |
-| `1` `2` | F# | `3` `4` | F# |
-| `1` `3` | G | `4` `0` | G |
-| `1` `4` | G# | `4` `1` | G# |
-| `2` `0` | A | `4` `2` | A |
-| `2` `1` | A# | `4` `3` | A# |
-| `2` `2` | B | `4` `4` | B |
+| State | Name | Release Condition |
+| :--- | :--- | :--- |
+| `0` | **Staccato** | Release at 1/2 step |
+| `1` | **Normal** | Release at 1 step |
+| `2` | **Legato** | Release upon `No-op` or a new note |
+| `3` | **Sustain** | Release upon a new note |
+| `4` | **Infinite** | Release when the identical note is triggered again |
 
-### Octave
-
-Special: `4`: Mute
-
-| Value | Octave |
-| --- | --- |
-| `0` | 3 |
-| `1` | 1 |
-| `2` | 5 |
-| `3` | 7 |
+---
 
 ## Checksum Implementation
 

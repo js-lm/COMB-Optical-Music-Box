@@ -21,15 +21,15 @@ namespace constants::color_sensor{
     constexpr uint8_t SensorsPerMux         {8};
     constexpr uint8_t EnableValue           {0x03}; // PON (bit 0) and AEN (bit 1)
     constexpr uint8_t PowerOnOnlyValue      {0x01}; // PON only
-    constexpr uint8_t IntegrationTimeValue  {0xf6}; // ~24ms
-    constexpr uint8_t GainValue             {0x01}; // 4x gain
+    constexpr uint8_t IntegrationTimeValue  {0xfd}; // ~ms
+    constexpr uint8_t GainValue             {0x02}; // 16x gain
     constexpr uint8_t RgbcDataByteCount     {8};
 
     // delay
-    constexpr units::Us MinimumReadInterval{50000};
-    // 25 ms seems to be the sweet spot, it reduces the error by 91% and is still very snappy
-    // for future reference, the error increases again once it goes above around 35 (idk why)
-    constexpr units::Us SeekStateStopToSamplingSettleDelay{25000ULL};
+    constexpr units::Us MinimumReadInterval{50000ULL};
+    // after using the new classification method, it can be safely reduce to around 12.5 ms 
+    // while still maintaining a 0% error rate. I pushed it a bit further to 10 ms.
+    constexpr units::Us SeekStateStopToSamplingSettleDelay{10000ULL}; // 25000
     constexpr units::Us TotalIntegrationTime{ // T_int = (256 - ATIME) * 2.4 ms
         (static_cast<uint32_t>(0x100U) - static_cast<uint32_t>(IntegrationTimeValue)) * 2400U
     };

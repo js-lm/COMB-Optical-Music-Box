@@ -18,7 +18,7 @@ public:
     using Base10 = int32_t;
 
     using InstrumentInstruction = Base5<constants::decoder::NumberOfInstrumentDigit>;
-    using ChordInstruction = Base5<constants::decoder::NumberOfChordDigit>;
+    using ChordInstruction = Base5<constants::decoder::NumberOfCommandDigit>;
 
 private:
     // std::array<midi_data::Instrument, constants::decoder::NumberOfInstrumentChannel> instrumentTypes_;

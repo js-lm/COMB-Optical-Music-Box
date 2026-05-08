@@ -4,6 +4,82 @@
 
 namespace instruments{
 
+    enum class Subset : uint8_t{
+    // Keyboards
+        Grand_Piano,
+        Electric_Piano,
+        Drawbar_Organ,
+        Church_Organ,
+
+    // Percussion
+        Music_Box,
+        Marimba,
+        Tubular_Bells,
+        Glockenspiel,
+        Vibraphone,
+        Kalimba,
+
+    // Woodwinds
+        Flute,
+        Oboe,
+        Clarinet,
+        Bassoon,
+
+    // Strings
+        Violin,
+        Viola,
+        Cello,
+        Contrabass,
+        Pizzicato_Strings,
+        Orchestral_Harp,
+
+    // Brass
+        Trumpet,
+        French_Horn,
+        Trombone,
+        Tuba,
+
+    // Harmony
+        String_Ensemble,
+        Choir_Aahs,
+
+    // Guitars
+        Nylon_Acoustic_Guitar,
+        Steel_Acoustic_Guitar,
+        Electric_Guitar,
+        Overdriven_Guitar,
+
+    // Basses
+        Acoustic_Bass,
+        Finger_Bass,
+        Fretless_Bass,
+        Synthesizer_Bass,
+
+    // Reeds
+        Alto_Saxophone,
+        Tenor_Saxophone,
+
+    // Synthesizers
+        Lead_1_Square,
+        Lead_2_Sawtooth,
+        Lead_3_Calliope,
+        Pad_1_Fantasia,
+        Pad_2_Warm,
+        Synthesizer_Strings,
+
+    // World
+        Shamisen,
+        Steel_Drum,
+        Sitar,
+        Accordion_French,
+        Harmonica,
+        Banjo,
+        Pan_Flute,
+
+    // Drum Sets
+        Drum_Sets
+    };
+
     enum class Default : uint8_t{
         // piano
         Grand_Piano_1           = 0,

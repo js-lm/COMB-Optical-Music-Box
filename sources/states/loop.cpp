@@ -40,16 +40,22 @@ void MusicBox::updateProcessState(){
     constexpr auto numberOfInstrumentCount{constants::decoder::NumberOfInstrumentChannel};
 
     using namespace constants::color_sensor;
-    for(uint8_t instrumentChannel{1}; instrumentChannel <= constants::decoder::NumberOfInstrumentChannel; instrumentChannel++){
+    for(uint8_t instrumentChannel{1}; 
+        instrumentChannel <= numberOfInstrumentCount; 
+        instrumentChannel++
+    ){
         MusicDecoder::Base5<numberOfInstrumentCount> base5values{};
 
-        for(int sensorIndex{(instrumentChannel - 1) * numberOfInstrumentCount}, digitIndex{0}; sensorIndex < instrumentChannel * numberOfInstrumentCount; sensorIndex++, digitIndex++){
+        for(int sensorIndex{(instrumentChannel - 1) * numberOfInstrumentCount}, digitIndex{0}; 
+            sensorIndex < instrumentChannel * numberOfInstrumentCount; 
+            sensorIndex++, digitIndex++
+        ){
             // DEBUG_PRINT("sensor:%i-%i ", static_cast<int>(colorRow[SensorIndexMap[sensorIndex]]));
 
-            DEBUG_PRINT("sensor:%i color:%i ", 
-                sensorIndex,
-                static_cast<int>(colorRow[SensorIndexMap[sensorIndex]])
-            );
+            // DEBUG_PRINT("sensor:%i color:%i ", 
+            //     sensorIndex,
+            //     static_cast<int>(colorRow[SensorIndexMap[sensorIndex]])
+            // );
 
             const auto currentColor{colorRow[SensorIndexMap[sensorIndex]]};
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aliases.hpp"
+
 #include "midi_context.hpp"
 
 #include <variant>
@@ -18,9 +19,32 @@ namespace midi_command{
         units::midi::Note note;
     };
 
+    struct ChangeInstrument{
+        units::midi::Channel channel;
+
+    };
+
+    struct ChangeTempo{
+        units::Tempo tempo;
+    };
+
+    struct ChangeVolume{
+        std::optional<units::midi::Channel> channel;
+        units::Volume volume;
+    };
+
+    struct ChangeArticulation{
+        std::optional<units::midi::Channel> channel;
+        units::Articulation articulation;
+    };
+
     using Command = std::variant<
         QueuedNoteOn, 
-        QueuedNoteOff
+        QueuedNoteOff,
+        ChangeInstrument,
+        ChangeTempo,
+        ChangeVolume,
+        ChangeArticulation
     >;
 
     void execute(const Command &command, ExecutionContext &context);

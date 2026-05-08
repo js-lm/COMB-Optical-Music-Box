@@ -6,28 +6,13 @@
 #include "midi_unit/midi_manager.hpp"
 #include "music_decoder/music_decoder.hpp"
 
+#include "machine_states.hpp"
+
 #include "utilities/enum_map.hpp"
-#include "utilities/ring_buffer.hpp"
 
 #include <atomic>
 
 class MusicBox{
-private:
-    enum class State : uint8_t{
-        None,
-
-        Calibrate_Markers,
-        Calibrate_Sensors,
-
-        Configure_Metadata,
-        Configure_Instruments,
-
-        Seek,
-        Sampling,
-        Wait,
-        Process
-    } state_;
-
 private:
     MotorManager        motorManager_{};
     LightSensorManager  lightSensorManager_{};
@@ -44,8 +29,12 @@ private:
     units::TimestampUs motorStopTimestamp_{0};
 
 private:
-    enum class Channel : uint8_t{ None, Instrument_1, Instrument_2, Instrument_3, Chord};
-    utilities::EnumMap<Channel, midi_data::Instrument> channelInstruments_{};
+    MachineStates states_{};
+    units::TimestampUs lastNoteTimestamp_{0};
+
+private:
+    // enum class Channel : uint8_t{ None, Instrument_1, Instrument_2, Instrument_3, Chord};
+    // utilities::EnumMap<Channel, midi_data::Instrument> channelInstruments_{};
 
 private:
     midi_command::MachineState commandState_{};

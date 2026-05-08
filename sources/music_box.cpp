@@ -31,7 +31,7 @@ void MusicBox::initialize(){
     DEBUG_PRINT("Music Box Initializing...");
 
     lastUpdateTime_ = time_us_64();
-    state_ = State::Seek;
+    states_.state = MachineStates::State::Seek;
 
     motorManager_.initialize();
     lightSensorManager_.initialize();
@@ -67,22 +67,16 @@ void MusicBox::initialize(){
 void MusicBox::update(){
     updateTimers();
 
-    switch(state_){
-    case State::Calibrate_Markers: updateCalibrateMarkersState(); break;
-    case State::Calibrate_Sensors: updateCalibrateSensorsState(); break;
-
-    case State::Configure_Metadata:     updateConfigureMetadataState(); break;
-    case State::Configure_Instruments:  updateConfigureInstrumentsState(); break;
-
-    case State::Seek:       updateSeekState(); break;
-    case State::Wait:       updateWaitState(); break;
-    case State::Sampling:   updateSamplingState(); break;
-    case State::Process:    DEBUG_updateProcessState(); break;
+    switch(states_.state){
+    case MachineStates::State::Seek:       updateSeekState(); break;
+    case MachineStates::State::Wait:       updateWaitState(); break;
+    case MachineStates::State::Sampling:   updateSamplingState(); break;
+    case MachineStates::State::Process:    updateProcessState(); break;
 
     default: break;
     }
 
-    const auto stateName{magic_enum::enum_name(state_)};
+    const auto stateName{magic_enum::enum_name(states_.state)};
     DEBUG_PRINT_IF_CHANGED(
         "State changed to %.*s",
         static_cast<int>(stateName.size()),
@@ -100,13 +94,13 @@ void MusicBox::core1Entry(){
 }
 
 void MusicBox::nextState(){
-    constexpr auto values{magic_enum::enum_values<State>()};
-    constexpr auto seekIndex{static_cast<uint8_t>(State::Seek)};
+    constexpr auto values{magic_enum::enum_values<MachineStates::State>()};
+    constexpr auto seekIndex{static_cast<uint8_t>(MachineStates::State::Seek)};
     
-    auto currentIndex{static_cast<uint8_t>(state_)};
+    auto currentIndex{static_cast<uint8_t>(states_.state)};
     auto nextIndex{seekIndex + ((currentIndex - seekIndex + 1) % (values.size() - seekIndex))};
     
-    state_ = values[nextIndex];
+    states_.state = values[nextIndex];
 }
 
 void MusicBox::updateTimers(){

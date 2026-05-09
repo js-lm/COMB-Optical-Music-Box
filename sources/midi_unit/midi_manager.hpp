@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <span>
 
-#include "chord.hpp"
 #include "aliases.hpp"
 
 class MidiManager{
@@ -23,9 +22,6 @@ public:
 public:
     void noteOn(units::midi::Channel channel, units::midi::Note note, units::midi::Velocity velocity);
     void noteOff(units::midi::Channel channel, units::midi::Note note);
-
-    void playChord(units::midi::Channel channel, Chord chord, Style style, BPM bpm);
-    void stopChord(units::midi::Channel channel);
 
     void silence(units::midi::Channel channel);
 

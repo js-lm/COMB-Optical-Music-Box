@@ -21,7 +21,7 @@ namespace midi_command{
 
     struct ChangeInstrument{
         units::midi::Channel channel;
-
+        instruments::Subset instrument;
     };
 
     struct ChangeTempo{

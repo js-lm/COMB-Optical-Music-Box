@@ -31,7 +31,7 @@ void MusicBox::initialize(){
     DEBUG_PRINT("Music Box Initializing...");
 
     lastUpdateTime_ = time_us_64();
-    states_.state = MachineStates::State::Seek;
+    musicStateMachine_.getStates().state = MachineStates::State::Seek;
 
     motorManager_.initialize();
     lightSensorManager_.initialize();
@@ -67,7 +67,7 @@ void MusicBox::initialize(){
 void MusicBox::update(){
     updateTimers();
 
-    switch(states_.state){
+    switch(musicStateMachine_.getStates().state){
     case MachineStates::State::Seek:       updateSeekState(); break;
     case MachineStates::State::Wait:       updateWaitState(); break;
     case MachineStates::State::Sampling:   updateSamplingState(); break;
@@ -76,7 +76,7 @@ void MusicBox::update(){
     default: break;
     }
 
-    const auto stateName{magic_enum::enum_name(states_.state)};
+    const auto stateName{magic_enum::enum_name(musicStateMachine_.getStates().state)};
     DEBUG_PRINT_IF_CHANGED(
         "State changed to %.*s",
         static_cast<int>(stateName.size()),
@@ -97,10 +97,10 @@ void MusicBox::nextState(){
     constexpr auto values{magic_enum::enum_values<MachineStates::State>()};
     constexpr auto seekIndex{static_cast<uint8_t>(MachineStates::State::Seek)};
     
-    auto currentIndex{static_cast<uint8_t>(states_.state)};
+    auto currentIndex{static_cast<uint8_t>(musicStateMachine_.getStates().state)};
     auto nextIndex{seekIndex + ((currentIndex - seekIndex + 1) % (values.size() - seekIndex))};
     
-    states_.state = values[nextIndex];
+    musicStateMachine_.getStates().state = values[nextIndex];
 }
 
 void MusicBox::updateTimers(){

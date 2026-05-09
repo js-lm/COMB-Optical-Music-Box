@@ -44,14 +44,6 @@ void MidiManager::noteOff(units::midi::Channel channel, units::midi::Note note){
     uart_putc_raw(constants::midi::UartInstance, 0);
 }
 
-void MidiManager::playChord(units::midi::Channel channel, Chord chord, Style style, BPM bpm){
-
-}
-
-void MidiManager::stopChord(units::midi::Channel channel){
-
-}
-
 void MidiManager::silence(units::midi::Channel channel){
     if(channel > constants::midi::MaximumChannel) return;
 

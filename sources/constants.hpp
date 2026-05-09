@@ -47,7 +47,9 @@ namespace constants{
     namespace system{
         constexpr uint16_t MaxAdcValue{4095}; // 12 bits
 
-        constexpr uint8_t MaxCommandsInBuffer{255};
+        constexpr uint8_t MaximumCommandsInBuffer{255};
+
+        constexpr uint8_t BaseNoteOffset{21};
     } // namespace system
 
     namespace runtime{

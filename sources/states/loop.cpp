@@ -37,42 +37,30 @@ void MusicBox::updateWaitState(){
 void MusicBox::updateProcessState(){
     const auto colorRow{sensorsManager_.collectSensorData()};
 
-    constexpr auto numberOfInstrumentCount{constants::decoder::NumberOfInstrumentChannel};
+    // constexpr auto numberOfInstrumentCount{constants::decoder::NumberOfInstrumentChannel};
 
-    using namespace constants::color_sensor;
-    for(uint8_t instrumentChannel{1}; 
-        instrumentChannel <= numberOfInstrumentCount; 
-        instrumentChannel++
-    ){
-        MusicDecoder::Base5<numberOfInstrumentCount> base5values{};
+    music_decoder::DecodedRow decodedRow{};
 
-        for(int sensorIndex{(instrumentChannel - 1) * numberOfInstrumentCount}, digitIndex{0}; 
-            sensorIndex < instrumentChannel * numberOfInstrumentCount; 
-            sensorIndex++, digitIndex++
-        ){
-            // DEBUG_PRINT("sensor:%i-%i ", static_cast<int>(colorRow[SensorIndexMap[sensorIndex]]));
+    auto getDigit{[&](int index)->uint8_t{
+        return static_cast<uint8_t>(
+            colorRow[constants::color_sensor::SensorIndexMap[index]]
+        );
+    }};
 
-            // DEBUG_PRINT("sensor:%i color:%i ", 
-            //     sensorIndex,
-            //     static_cast<int>(colorRow[SensorIndexMap[sensorIndex]])
-            // );
-
-            const auto currentColor{colorRow[SensorIndexMap[sensorIndex]]};
-
-            base5values[digitIndex] = static_cast<MusicDecoder::Base5Value>(currentColor); // TODO: This is assuming they are mapped 1:1. Not the safest have to say
-        }
-
-        std::optional<midi_command::Command> command{
-            musicDecoder_.decode(
-                base5values,
-                instrumentChannel - 1
-            )
-        };
-
-        if(command && !commandQueue_.isFull()){
-            commandQueue_.push(std::move(*command));
-        }
+    // 0 - 11
+    for(uint8_t channelIndex{0}; channelIndex < constants::decoder::NumberOfInstrumentChannel; channelIndex++){
+        int startIndex{channelIndex * constants::decoder::Radix};
+        decodedRow.instruments[channelIndex].opcode = getDigit(startIndex);
+        decodedRow.instruments[channelIndex].immediateDigits[0] = getDigit(startIndex + 1);
+        decodedRow.instruments[channelIndex].immediateDigits[1] = getDigit(startIndex + 2);
     }
+
+    // 12 - 14
+    decodedRow.system.opcode = getDigit(constants::decoder::SystemCommandStartIndex);
+    decodedRow.system.immediateDigits[0] = getDigit(constants::decoder::SystemCommandStartIndex + 1);
+    decodedRow.system.immediateDigits[1] = getDigit(constants::decoder::SystemCommandStartIndex + 2);
+
+    musicStateMachine_.process(decodedRow, commandQueue_);
 
     sensorsManager_.stopSampling();
     lightSensorManager_.next();

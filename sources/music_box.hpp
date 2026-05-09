@@ -5,8 +5,7 @@
 #include "color_sensors/sensors_manager.hpp"
 #include "midi_unit/midi_manager.hpp"
 #include "music_decoder/music_decoder.hpp"
-
-#include "machine_states.hpp"
+#include "states/music_state_machine.hpp"
 
 #include "utilities/enum_map.hpp"
 
@@ -19,7 +18,7 @@ private:
     SensorsManager      sensorsManager_{};
     MidiManager         midiManager_{};
     MusicDecoder        musicDecoder_{};
-    // Calibrator          calibrator_{};
+    MusicStateMachine   musicStateMachine_{};
 
     // inline static std::atomic<MotorManager*> motorManagerPointer_{nullptr};
 
@@ -27,9 +26,6 @@ private:
     units::TimestampUs lastUpdateTime_{0};
     units::Us timeSinceLastStep_{0};
     units::TimestampUs motorStopTimestamp_{0};
-
-private:
-    MachineStates states_{};
     units::TimestampUs lastNoteTimestamp_{0};
 
 private:
@@ -38,7 +34,7 @@ private:
 
 private:
     midi_command::MachineState commandState_{};
-    utilities::RingBuffer<midi_command::Command, constants::system::MaxCommandsInBuffer> commandQueue_{};
+    utilities::RingBuffer<midi_command::Command, constants::system::MaximumCommandsInBuffer> commandQueue_{};
 
 private:
     // calibrator::ReferenceProfile calibrationProfile_{};

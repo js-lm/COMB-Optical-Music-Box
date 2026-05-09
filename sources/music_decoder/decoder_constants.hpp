@@ -11,6 +11,9 @@ namespace constants::decoder{
     constexpr uint8_t NumberOfInstrumentDigit{3};
     constexpr uint8_t NumberOfCommandDigit{3};
 
+    constexpr uint8_t NumberOfImmediateDigitsInInstrument{2};
+    constexpr uint8_t NumberOfImmediateDigitsInCommand{2};
+
     constexpr uint8_t NumberOfInstrumentChannel{4};
 
     constexpr uint8_t MaximumNumberOfBase5Digit{14};
@@ -18,6 +21,8 @@ namespace constants::decoder{
     constexpr uint8_t Radix{5};
 
     constexpr uint8_t MaximumSimultaneousNotePerInstrument{5};
+
+    constexpr uint8_t SystemCommandStartIndex{12};
 
     constexpr utilities::EnumMap<instruments::Subset, int> InstrumentsMap{
         // Keyboards

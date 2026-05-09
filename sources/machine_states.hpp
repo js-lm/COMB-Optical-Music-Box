@@ -22,6 +22,7 @@ struct MachineStates{
     std::array<instruments::Subset, constants::decoder::NumberOfInstrumentChannel> instruments{};
     std::array<units::Volume, constants::decoder::NumberOfInstrumentChannel> volumes{};
     std::array<units::Articulation, constants::decoder::NumberOfInstrumentChannel> articulations{};
+    units::Tempo tempo{};
 
     using ActiveNotes = utilities::StaticSet<midi_data::Note, constants::decoder::MaximumSimultaneousNotePerInstrument>;
     std::array<ActiveNotes, constants::decoder::NumberOfInstrumentChannel> activeNotes{};

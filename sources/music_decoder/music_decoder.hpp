@@ -36,8 +36,6 @@ public:
     ) const;
 
 private:
-    void setInstrument(const midi_data::Instrument &instrument);
-
     template<size_t NumberOfDigit>
     Base10 base5ToDecimal(const Base5<NumberOfDigit> &value) const{
         static_assert(NumberOfDigit < constants::decoder::MaximumNumberOfBase5Digit);

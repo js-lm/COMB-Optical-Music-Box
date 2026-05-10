@@ -15,9 +15,7 @@ void midi_command::execute(const Command &command, MidiManager &midiManager){
         }else if constexpr(std::is_same_v<EventType, ChangeInstrument>){
             midiManager.setInstrument(
 				event.channel, 
-				static_cast<midi_data::Instrument>(static_cast<instruments::Default>( // TODO: actually, I don't know... should I add MT32 support?
-					constants::decoder::InstrumentsMap[event.instrument]
-				))
+				constants::decoder::InstrumentsMap[event.instrument]
 			);
         }else if constexpr(std::is_same_v<EventType, ChangeTempo>){
 			// tempo is handled by the state machine loop delay, nothing to do here

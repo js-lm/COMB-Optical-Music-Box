@@ -49,7 +49,7 @@ namespace constants{
 
         constexpr uint8_t MaximumCommandsInBuffer{255};
 
-        constexpr uint8_t BaseNoteOffset{21};
+        constexpr uint8_t BaseNoteOffset{23};
 
         constexpr instruments::Subset   DefaultInstrument{instruments::Subset::Grand_Piano};
         constexpr units::Volume         DefaultVolume{100};

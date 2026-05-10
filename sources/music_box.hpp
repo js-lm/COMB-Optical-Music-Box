@@ -9,6 +9,8 @@
 
 #include "utilities/enum_map.hpp"
 
+#include "machine_states.hpp"
+
 #include <atomic>
 
 class MusicBox{
@@ -33,7 +35,7 @@ private:
     // utilities::EnumMap<Channel, midi_data::Instrument> channelInstruments_{};
 
 private:
-    midi_command::MachineState commandState_{};
+    MachineStates commandState_{};
     utilities::RingBuffer<midi_command::Command, constants::system::MaximumCommandsInBuffer> commandQueue_{};
 
 private:

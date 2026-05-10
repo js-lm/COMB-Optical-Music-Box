@@ -32,4 +32,7 @@ namespace constants::midi{
     constexpr uint8_t DefaultBankValue      {0};
     constexpr uint8_t AlternativeBankValue  {127};
 
+    // drum sets
+    constexpr uint8_t DrumSetsChannel{9};
+
 } // namespace constants::midi

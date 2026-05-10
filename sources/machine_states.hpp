@@ -19,12 +19,18 @@ struct MachineStates{
         Process
     } state{State::None};
 
-    std::array<instruments::Subset, constants::decoder::NumberOfInstrumentChannel> instruments{};
-    std::array<units::Volume, constants::decoder::NumberOfInstrumentChannel> volumes{};
-    std::array<units::Articulation, constants::decoder::NumberOfInstrumentChannel> articulations{};
-    units::Tempo tempo{};
+    std::array<instruments::Subset, constants::decoder::NumberOfInstrumentChannel> instruments;
+    std::array<units::Volume, constants::decoder::NumberOfInstrumentChannel> volumes;
+    std::array<units::Articulation, constants::decoder::NumberOfInstrumentChannel> articulations;
+    
+    units::Tempo tempo{constants::system::DefaultTempo};
 
     using ActiveNotes = utilities::StaticSet<midi_data::Note, constants::decoder::MaximumSimultaneousNotePerInstrument>;
     std::array<ActiveNotes, constants::decoder::NumberOfInstrumentChannel> activeNotes{};
 
+    MachineStates(){
+        instruments.fill(constants::system::DefaultInstrument);
+        volumes.fill(constants::system::DefaultVolume);
+        articulations.fill(constants::system::DefaultArticulation);
+    }
 };

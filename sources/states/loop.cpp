@@ -24,7 +24,18 @@ void MusicBox::updateSamplingState(){
 }
 
 void MusicBox::updateWaitState(){
-    if(sensorsManager_.isSamplingReady()){
+    const units::Percentage tempoPercentage{musicStateMachine_.getStates().tempo / 100.0f};
+    const float targetNps{constants::system::MaximumNotesPerSecond * tempoPercentage}; // TODO: cache this
+    
+    const units::Us targetInterval{static_cast<units::Us>(1000000.0f / targetNps)}; // TODO: helper function
+    const bool isTempoReady{(time_us_64() - lastNoteTimestamp_) >= targetInterval};
+
+    // DEBUG_PRINT("targetInterval:%d, isTempoReady: %d", 
+    //     targetInterval, isTempoReady
+    // );
+
+    if(sensorsManager_.isSamplingReady() && isTempoReady){
+        lastNoteTimestamp_ = time_us_64();
 
         while(!commandQueue_.isEmpty()){
             executeNextBufferedCommand();
@@ -49,7 +60,7 @@ void MusicBox::updateProcessState(){
 
     // 0 - 11
     for(uint8_t channelIndex{0}; channelIndex < constants::decoder::NumberOfInstrumentChannel; channelIndex++){
-        int startIndex{channelIndex * constants::decoder::Radix};
+        int startIndex{channelIndex * constants::decoder::NumberOfInstrumentDigit};
         decodedRow.instruments[channelIndex].opcode = getDigit(startIndex);
         decodedRow.instruments[channelIndex].immediateDigits[0] = getDigit(startIndex + 1);
         decodedRow.instruments[channelIndex].immediateDigits[1] = getDigit(startIndex + 2);
@@ -61,6 +72,29 @@ void MusicBox::updateProcessState(){
     decodedRow.system.immediateDigits[1] = getDigit(constants::decoder::SystemCommandStartIndex + 2);
 
     musicStateMachine_.process(decodedRow, commandQueue_);
+
+    const auto &states{musicStateMachine_.getStates()};
+    DEBUG_PRINT(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.>>>>>>>");
+    DEBUG_PRINT("Tempo: %d", states.tempo);
+    for(uint8_t channelindex{0}; channelindex < constants::decoder::NumberOfInstrumentChannel; channelindex++){
+        const auto articulationName{magic_enum::enum_name(states.articulations[channelindex])};
+        DEBUG_PRINT("Channel %d - V:%d, A:%.*s", 
+            channelindex,
+            states.volumes[channelindex],
+            static_cast<int>( articulationName.size()),
+            articulationName.data()
+        );
+        
+        const auto activeNotes{states.activeNotes[channelindex].toVector()};
+        for(const auto &note : activeNotes){
+            const auto noteName{magic_enum::enum_name(note)};
+            DEBUG_PRINT(" -> Playing note: %d (%.*s)", 
+                static_cast<int>(note), 
+                static_cast<int>(noteName.size()),
+                noteName.data()
+            );
+        }
+    }
 
     sensorsManager_.stopSampling();
     lightSensorManager_.next();

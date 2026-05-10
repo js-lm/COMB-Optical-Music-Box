@@ -7,13 +7,6 @@
 
 class MidiManager{
 public:
-    enum class Style{
-
-    };
-
-    using BPM = uint16_t;
-
-public:
     MidiManager() = default;
     ~MidiManager() = default;
 
@@ -24,7 +17,7 @@ public:
     void noteOff(units::midi::Channel channel, units::midi::Note note);
 
     void silence(units::midi::Channel channel);
-
+    
 public:
     void setInstrument(units::midi::Channel channel, const midi_data::Instrument &instrument);
 

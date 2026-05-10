@@ -33,7 +33,10 @@ public:
     const MachineStates &getStates() const{ return states_;}
 
 private:
-    void updateSystemState(const music_decoder::SystemCommand &systemCommand);
+    void updateSystemState(
+        const music_decoder::SystemCommand &systemCommand, 
+        CommandBuffer &queue
+    );
     void evaluateInstrumentCommands(
         const InstrumentCommands &instrumentCommands, 
         CommandBuffer &queue

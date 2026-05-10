@@ -4,7 +4,6 @@ void MusicBox::executeNextBufferedCommand(){
 	if(commandQueue_.isEmpty()) return;
 
 	auto command{commandQueue_.pop()};
-	midi_command::ExecutionContext executionContext{commandState_, midiManager_};
-	midi_command::execute(command, executionContext);
+	midi_command::execute(command, midiManager_);
 }
 

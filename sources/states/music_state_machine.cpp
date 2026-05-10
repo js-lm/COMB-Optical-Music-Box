@@ -4,12 +4,15 @@ void MusicStateMachine::process(
     const music_decoder::DecodedRow &row, 
     CommandBuffer &queue
 ){
-    if(!row.system.isNoOp()) updateSystemState(row.system);
+    if(!row.system.isNoOp()) updateSystemState(row.system, queue);
     
     evaluateInstrumentCommands(row.instruments, queue);
 }
 
-void MusicStateMachine::updateSystemState(const music_decoder::SystemCommand &systemCommand) {
+void MusicStateMachine::updateSystemState(
+    const music_decoder::SystemCommand &systemCommand, 
+    CommandBuffer &queue
+){
     uint8_t opcode{systemCommand.opcode};
     uint8_t immediate1{systemCommand.immediateDigits[0]};
     uint8_t immediate2{systemCommand.immediateDigits[1]};
@@ -24,18 +27,23 @@ void MusicStateMachine::updateSystemState(const music_decoder::SystemCommand &sy
     case 3: {
         uint8_t target{immediate1};
 
-        units::Volume volume{static_cast<units::Volume>((((opcode - 2) * 5) + immediate2 + 1) * 10)};
+        const auto volume{static_cast<units::Volume>((((opcode - 2) * 5) + immediate2 + 1) * 10)};
         
         if(target == 0){
             states_.volumes.fill(volume);
+            // queue.push(midi_command::ChangeVolume{.channel = std::nullopt, .volume = volume});
         }else if(target <= 4){
             states_.volumes[target - 1] = volume;
+            // queue.push(midi_command::ChangeVolume{
+            //     .channel = static_cast<units::midi::Channel>(target - 1), 
+            //     .volume = volume
+            // });
         }
     } break;
 
     case 4: {
         uint8_t target{immediate1};
-        units::Articulation articulation{static_cast<units::Articulation>(immediate2)};
+        const auto articulation{static_cast<units::Articulation>(immediate2)};
         
         if(target == 0){
             states_.articulations.fill(articulation);
@@ -77,125 +85,108 @@ void MusicStateMachine::evaluateInstrumentCommands(
             }
         }
 
-    if(currentNote.has_value()){
-        const midi_data::Note note{currentNote.value()};
-        const auto noteValue{static_cast<units::midi::Note>(note)};
+        const auto targetChannel{
+            states_.instruments[channelIndex] == instruments::Subset::Drum_Sets 
+                ? constants::midi::DrumSetsChannel : channelIndex
+        };
 
-        switch(articulation){
-        case units::Articulation::Infinite: {
-            // const bool isCurrentlyPlaying{context_.machine.activeNotes[channel].remove(note)};
-            // if(isCurrentlyPlaying){
-            //     context_.machine.activeNotes[channel].add(note);
-            //     midiManager.noteOff(targetChannel, note);
-            // }else{
-            //     midiManager.noteOn(targetChannel, note);
-            // }
+        if(currentNote.has_value()){
+            const midi_data::Note note{currentNote.value()};
+            const auto noteValue{static_cast<units::midi::Note>(note)};
 
-            if(states_.activeNotes[channelIndex].remove(note)){
-                states_.activeNotes[channelIndex].add(note);
-                queue.push(midi_command::QueuedNoteOff{
-                    .channel = channelIndex, 
-                    .note = noteValue
-                });
-            }else{
-                queue.push(midi_command::QueuedNoteOn{
-                    .channel = channelIndex, 
-                    .note = noteValue, 
-                    .velocity = static_cast<units::midi::Velocity>((states_.volumes[channelIndex] * constants::midi::MaximumVelocity) / 100.0f)
-                });
-            }
-    
-        } break;
-        
-        case units::Articulation::Sustain:
-        case units::Articulation::Legato: {
-            // const bool isCurrentlyPlaying{context_.machine.activeNotes[channel].remove(note)};
-            // if(isCurrentlyPlaying){
-            //     context_.machine.activeNotes[channel].add(note);
-            // }else{
-            //     const auto activeNotes{context_.machine.activeNotes[channel].toVector()};
-            //     for(const auto &activeNote : activeNotes){
-            //         midiManager.noteOff(targetChannel, activeNote);
-            //     }
+            switch(articulation){
+            case units::Articulation::Infinite: {
+
+                if(states_.activeNotes[channelIndex].remove(note)){
+                    states_.activeNotes[channelIndex].add(note);
+                    queue.push(midi_command::QueuedNoteOff{
+                        .channel = targetChannel, 
+                        .note = noteValue
+                    });
+                }else{
+                    queue.push(midi_command::QueuedNoteOn{
+                        .channel = targetChannel, 
+                        .note = noteValue, 
+                        .velocity = static_cast<units::midi::Velocity>((states_.volumes[channelIndex] * constants::midi::MaximumVelocity) / 100.0f)
+                    });
+                }
                 
-            //     midiManager.noteOn(targetChannel, note);
-            // }
-
-            if(states_.activeNotes[channelIndex].remove(note)){
                 states_.activeNotes[channelIndex].add(note);
-            }else{
+            } break;
+            
+            case units::Articulation::Sustain:
+            case units::Articulation::Legato: {
+
+                if(states_.activeNotes[channelIndex].remove(note)){
+                    states_.activeNotes[channelIndex].add(note);
+                }else{
+                    const auto activeNotes{states_.activeNotes[channelIndex].toVector()};
+                    for(const auto &activeNote : activeNotes){
+                        queue.push(midi_command::QueuedNoteOff{
+                            .channel = targetChannel, 
+                            .note = static_cast<units::midi::Note>(activeNote)
+                        });
+                    }
+
+                    states_.activeNotes[channelIndex].clear();
+                    states_.activeNotes[channelIndex].add(note);
+
+                    queue.push(midi_command::QueuedNoteOn{
+                        .channel = targetChannel, 
+                        .note = noteValue, 
+                        .velocity = static_cast<units::midi::Velocity>((states_.volumes[channelIndex] * constants::midi::MaximumVelocity) / 100.0f)
+                    });
+                }
+            } break;
+
+            case units::Articulation::Normal:
+            case units::Articulation::Staccato:
+            default: {
                 const auto activeNotes{states_.activeNotes[channelIndex].toVector()};
                 for(const auto &activeNote : activeNotes){
                     queue.push(midi_command::QueuedNoteOff{
-                        .channel = channelIndex, 
+                        .channel = targetChannel, 
                         .note = static_cast<units::midi::Note>(activeNote)
                     });
                 }
-                queue.push(midi_command::QueuedNoteOn{
-                    .channel = static_cast<units::midi::Channel>(channelIndex), 
+                queue.push(midi_command::QueuedNoteOn{ // TODO: all duplicated, make a factory
+                    .channel = targetChannel, 
                     .note = noteValue, 
                     .velocity = static_cast<units::midi::Velocity>((states_.volumes[channelIndex] * constants::midi::MaximumVelocity) / 100.0f)
                 });
+                states_.activeNotes[channelIndex].clear();
+                states_.activeNotes[channelIndex].add(note);
+
+            } break;
             }
-        } break;
+        }else{
+            switch(articulation){
+            case units::Articulation::Staccato:
+                // TODO: staccato
 
-        case units::Articulation::Normal:
-        case units::Articulation::Staccato:
-        default: {
-            // const auto activeNotes{context_.machine.activeNotes[channel].toVector()};
-            // for(const auto &activeNote : activeNotes){
-            //     midiManager.noteOff(targetChannel, activeNote);
-            // }
-            
-            // midiManager.noteOn(targetChannel, note);
 
-            // // context_.machine.activeNotes[channel].clear();
-            // context_.machine.activeNotes[channel].add(note);
+            case units::Articulation::Normal:
+            case units::Articulation::Legato: {
+                // const auto activeNotes{context_.machine.activeNotes[channel].toVector()};
+                // for(const auto &activeNote : activeNotes){
+                //     midiManager.noteOff(targetChannel, activeNote);
+                // }
 
-            const auto activeNotes{states_.activeNotes[channelIndex].toVector()};
-            for(const auto &activeNote : activeNotes){
-                queue.push(midi_command::QueuedNoteOff{
-                    .channel = channelIndex, 
-                    .note = static_cast<units::midi::Note>(activeNote)
-                });
+                const auto activeNotes{states_.activeNotes[channelIndex].toVector()};
+                for(const auto &activeNote : activeNotes){
+                    queue.push(midi_command::QueuedNoteOff{
+                        .channel = targetChannel, 
+                        .note = static_cast<units::midi::Note>(activeNote)
+                    });
+                }
+                states_.activeNotes[channelIndex].clear();
+            } break;
+
+            case units::Articulation::Sustain:
+            case units::Articulation::Infinite:
+            default: break;
             }
-            queue.push(midi_command::QueuedNoteOn{ // TODO: all duplicated, make a factory
-                .channel = static_cast<units::midi::Channel>(channelIndex), 
-                .note = noteValue, 
-                .velocity = static_cast<units::midi::Velocity>((states_.volumes[channelIndex] * constants::midi::MaximumVelocity) / 100.0f)
-            });
-            states_.activeNotes[channelIndex].add(note);
-
-        } break;
         }
-    }else{
-        switch(articulation){
-        case units::Articulation::Staccato:
-            // TODO: staccato
-
-
-        case units::Articulation::Normal:
-        case units::Articulation::Legato: {
-            // const auto activeNotes{context_.machine.activeNotes[channel].toVector()};
-            // for(const auto &activeNote : activeNotes){
-            //     midiManager.noteOff(targetChannel, activeNote);
-            // }
-
-            const auto activeNotes{states_.activeNotes[channelIndex].toVector()};
-            for(const auto &activeNote : activeNotes){
-                queue.push(midi_command::QueuedNoteOff{
-                    .channel = channelIndex, 
-                    .note = static_cast<units::midi::Note>(activeNote)
-                });
-            }
-            states_.activeNotes[channelIndex].clear();
-        } break;
-
-        case units::Articulation::Sustain:
-        case units::Articulation::Infinite:
-        default: break;
-        }
-    }
     
     }
 }

@@ -43,6 +43,32 @@ private:
     );
 
 private:
+    void queueNoteOn(
+        uint8_t instrumentChannel,
+        units::midi::Channel midiChannel,
+        units::midi::Note note,
+        CommandBuffer &queue
+    );
+
+    void queueNoteOff(
+        units::midi::Channel channelIndex,
+        units::midi::Note note,
+        CommandBuffer &queue
+    );
+
+    void clearActiveNotes(
+        uint8_t instrumentChannel,
+        units::midi::Channel midiChannel,
+        CommandBuffer &queue
+    );
+
+    void applyArticulation(
+        units::midi::Channel channelIndex,
+        units::Articulation articulation,
+        CommandBuffer &queue
+    );
+
+private:
     uint16_t decodeBase5(uint8_t digit3, uint8_t digit2, uint8_t digit1){ // TODO: it's duplicated, kinda
         return digit3 * 25 + digit2 * 5 + digit1;
     }

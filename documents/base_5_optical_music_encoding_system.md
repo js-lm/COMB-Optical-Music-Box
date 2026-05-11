@@ -59,13 +59,15 @@ Format (Base 5): `[Opcode: 1 digit] [Immediate: 2 digits]`
 
 Behavior: Latched. State persists until new command overwrites it.
 
+Special: `0` `0` `0`: No-op
+
 | Name | Opcode | Description |
 | --- | --- | --- |
 | Set Tempo* | 0 - 1 | `Tempo = ((Opcode * 25) + toDecimal(Immediate) + 1) * 2` |
 | Set Volume** | 2 - 3 |`Target = Immediate Digit 1`, `Volume = (((Opcode - 2) * 5) + Immediate Digit 2 + 1) * 10` |
 | Set Articulation | 4 | `Target = Immediate Digit 1`, `State = Immediate Digit 2` |
 
-*\* Sets playback speed to (Tempo)% from 2% to 100% in 2% increments.*
+*\* Sets playback speed to (Tempo)% from 4% to 100% in 2% increments.*
 
 *\*\* Sets target volume to (Volume)% from 10% to 100% in 10% increments.*
 
@@ -85,9 +87,11 @@ Behavior: Latched. State persists until new command overwrites it.
 | :--- | :--- | :--- |
 | `0` | **Staccato** | Release at 1/2 step |
 | `1` | **Normal** | Release at 1 step |
-| `2` | **Legato** | Release upon `No-op` or a new note |
-| `3` | **Sustain** | Release upon a new note |
+| `2` | **Legato** | Release upon non-note instruction (`No-op` or `Set Instrument`) or `Play Note` command with a different pitch |
+| `3` | **Sustain** | Release upon `Play Note` command with a different pitch |
 | `4` | **Infinite** | Release when the identical note is triggered again |
+
+*\* `Set Articulation` command immediately releases all active notes on the targeted channel(s) before the new (or same) state is applied.*
 
 ---
 
